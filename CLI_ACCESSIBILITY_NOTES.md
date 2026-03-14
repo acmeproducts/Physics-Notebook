@@ -31,12 +31,16 @@ Covered by the current browser-backed check
 
 - The first library card is reachable by keyboard and opens with `Enter`.
 - AI buttons expose accessible names in the browser accessibility tree.
+- Concept-page canvases expose accessible names derived from their section
+  headings.
+- Sample pages stay free of browser console errors and page errors.
+- Core text colors stay above WCAG AA contrast in light and dark themes.
 
 Not yet CLI-covered, but should be
 
-- Screen-reader checks for interactive simulation output and canvas regions.
-- Color-contrast auditing across light and dark themes.
-- Browser-console regression checks for the concept pages after edits.
+- Screen-reader behavior for dynamic simulation changes, not just static labels.
+- Slider-driven interaction checks on the concept pages.
+- Wider contrast coverage beyond the core text tokens.
 
 Good next step
 

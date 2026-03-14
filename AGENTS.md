@@ -35,7 +35,7 @@ Verification
 - Run `python scripts/check_static_accessibility.py` when touching cards, AI
   buttons, or `_blank` links.
 - Run `npm run check:browser-a11y` or `npm test` when changing keyboard
-  navigation or accessible names.
+  navigation, accessible names, core text contrast, or canvas semantics.
 - Re-run targeted searches for duplicated `window.open(` patterns, unsafe
   `target="_blank"` usage, and broken element ids when touching shared page
   structure.

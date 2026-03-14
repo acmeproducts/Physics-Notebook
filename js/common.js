@@ -111,6 +111,7 @@ const AIProviderLauncher = {
 const AccessibilityManager = {
     init() {
         this.labelAIButtons();
+        this.labelCanvases();
     },
 
     labelAIButtons() {
@@ -150,6 +151,25 @@ const AccessibilityManager = {
 
         const provider = providerLabels[match[1]] || match[1];
         return `Ask ${provider}`;
+    },
+
+    labelCanvases() {
+        document.querySelectorAll('canvas').forEach((canvas) => {
+            if (canvas.closest('.card-visual')) {
+                canvas.setAttribute('role', 'presentation');
+                canvas.setAttribute('aria-hidden', 'true');
+                return;
+            }
+
+            const layout = canvas.closest('.split-layout');
+            const heading = layout?.querySelector('.content-col h2')?.textContent?.trim();
+            if (!heading) {
+                return;
+            }
+
+            canvas.setAttribute('role', 'img');
+            canvas.setAttribute('aria-label', `${heading} visualization`);
+        });
     }
 };
 
