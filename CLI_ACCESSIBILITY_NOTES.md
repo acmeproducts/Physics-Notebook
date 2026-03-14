@@ -8,6 +8,10 @@ Currently CLI-checkable
 
 - Static accessibility guardrail:
   `python scripts/check_static_accessibility.py`
+- Browser-backed accessibility smoke test:
+  `npm run check:browser-a11y`
+- Combined CLI accessibility check:
+  `npm run check:cli-a11y`
 - Local HTTP smoke checks:
   1. `python -m http.server 8765`
   2. `Invoke-WebRequest http://127.0.0.1:8765/ -UseBasicParsing`
@@ -23,14 +27,18 @@ Covered by the current static check
 - AI buttons keep an accessible name source in markup.
 - External `_blank` anchors retain `rel="noopener noreferrer"`.
 
+Covered by the current browser-backed check
+
+- The first library card is reachable by keyboard and opens with `Enter`.
+- AI buttons expose accessible names in the browser accessibility tree.
+
 Not yet CLI-covered, but should be
 
-- Keyboard tab-order verification in a real browser.
 - Screen-reader checks for interactive simulation output and canvas regions.
 - Color-contrast auditing across light and dark themes.
 - Browser-console regression checks for the concept pages after edits.
 
 Good next step
 
-- Add a small browser-automation smoke test that tabs through the library cards,
-  opens one concept page, and asserts that AI buttons expose accessible names.
+- Extend the browser automation to cover console-error checks and at least one
+  concept page with slider interaction.
