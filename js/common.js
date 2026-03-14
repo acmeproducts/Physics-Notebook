@@ -108,6 +108,51 @@ const AIProviderLauncher = {
     }
 };
 
+const AccessibilityManager = {
+    init() {
+        this.labelAIButtons();
+    },
+
+    labelAIButtons() {
+        const providerLabels = {
+            perplexity: 'Perplexity',
+            gemini: 'Gemini',
+            chatgpt: 'ChatGPT',
+            claude: 'Claude',
+            grok: 'Grok'
+        };
+
+        document.querySelectorAll('.ai-btn').forEach((button) => {
+            button.setAttribute('type', 'button');
+
+            if (!button.getAttribute('aria-label')) {
+                const title = button.getAttribute('title')?.trim();
+                const inferredLabel = title || this.inferAIButtonLabel(button, providerLabels);
+
+                if (inferredLabel) {
+                    button.setAttribute('aria-label', inferredLabel);
+                }
+            }
+
+            button.querySelectorAll('svg').forEach((icon) => {
+                icon.setAttribute('aria-hidden', 'true');
+                icon.setAttribute('focusable', 'false');
+            });
+        });
+    },
+
+    inferAIButtonLabel(button, providerLabels) {
+        const onclick = button.getAttribute('onclick') || '';
+        const match = onclick.match(/,\s*'([^']+)'\s*\)/);
+        if (!match) {
+            return '';
+        }
+
+        const provider = providerLabels[match[1]] || match[1];
+        return `Ask ${provider}`;
+    }
+};
+
 // Immediate execution to prevent flash IF this script is loaded in head deferred
 // But we actually want to run `setupTheme` ASAP.
 // Optimally, a small inline script in head handles the initial set, but this works traversing the DOM once body exists
@@ -170,6 +215,7 @@ window.launchAIPrompt = (model, prompt, options) => AIProviderLauncher.launch(mo
 document.addEventListener('DOMContentLoaded', () => {
     ThemeManager.init();
     GitHubStats.init();
+    AccessibilityManager.init();
     // Initialize Lucide icons if library is present
     if (window.lucide) {
         window.lucide.createIcons();

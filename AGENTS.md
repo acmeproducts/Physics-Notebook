@@ -32,6 +32,8 @@ Editing rules
 Verification
 
 - Smoke test `index.html` and each edited concept page through the local server.
+- Run `python scripts/check_static_accessibility.py` when touching cards, AI
+  buttons, or `_blank` links.
 - Re-run targeted searches for duplicated `window.open(` patterns, unsafe
   `target="_blank"` usage, and broken element ids when touching shared page
   structure.

@@ -737,10 +737,10 @@
                 }
 
                 data.forEach((item, index) => {
-                    const card = document.createElement('article');
+                    const card = document.createElement('a');
                     card.className = 'card';
+                    card.href = item.href;
                     card.style.opacity = 0;
-                    card.onclick = () => this.handleCardClick(item);
 
                     card.innerHTML = `
                         <div class="card-visual">
@@ -834,14 +834,6 @@
                 // Loop is always running, but individual draw() calls check isVisible flag
                 this.visuals.forEach(v => v.draw());
                 requestAnimationFrame(() => this.animateLoop());
-            },
-
-            handleCardClick(item) {
-                if (item.href) {
-                    window.location.href = item.href;
-                } else {
-                    alert(`Detailed view for ${item.title} is under construction.`);
-                }
             }
         };
 
