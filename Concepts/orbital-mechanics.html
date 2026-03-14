@@ -400,24 +400,7 @@
                     prompt = "Explain Newton's law of universal gravitation and how it governs planetary orbits.";
                     break;
             }
-            const encoded = encodeURIComponent(prompt);
-
-            if (model === 'gemini') {
-                navigator.clipboard.writeText(prompt).then(() => {
-                    alert("Gemini doesn't support auto-fill. The prompt has been copied to your clipboard.");
-                    window.open('https://gemini.google.com/app', '_blank');
-                });
-                return;
-            }
-
-            let url = "";
-            switch (model) {
-                case 'perplexity': url = `https://www.perplexity.ai/search?q=${encoded}`; break;
-                case 'chatgpt': url = `https://chatgpt.com/?q=${encoded}`; break;
-                case 'claude': url = `https://claude.ai/new?q=${encoded}`; break;
-                case 'grok': url = `https://grok.com/?q=${encoded}`; break;
-            }
-            if (url) window.open(url, '_blank');
+            launchAIPrompt(model, prompt);
         }
 
         const APP = {

@@ -38,7 +38,7 @@
             Physics • Notebook
         </div>
         <div class="nav-controls">
-            <a href="https://github.com/CasberryIndia/Physics-Notebook" target="_blank" class="github-btn"
+            <a href="https://github.com/CasberryIndia/Physics-Notebook" target="_blank" rel="noopener noreferrer" class="github-btn"
                 title="View Source on GitHub">
                 <i data-lucide="github" style="width:16px;"></i>
                 <span id="starCount">...</span>
@@ -689,6 +689,8 @@
         const App = {
             visuals: [],
             observer: null,
+            pendingVisualTimeouts: [],
+            renderVersion: 0,
 
             init() {
                 this.setupObserver();
@@ -719,6 +721,10 @@
 
             renderGrid(data) {
                 const grid = document.getElementById('cardsGrid');
+                const renderVersion = ++this.renderVersion;
+
+                this.pendingVisualTimeouts.forEach(timeoutId => clearTimeout(timeoutId));
+                this.pendingVisualTimeouts = [];
                 grid.innerHTML = '';
 
                 // Disconnect old observations
@@ -754,7 +760,11 @@
 
                     // Initialize Visual
                     const canvas = card.querySelector('canvas');
-                    setTimeout(() => {
+                    const timeoutId = setTimeout(() => {
+                        if (renderVersion !== this.renderVersion || !canvas.isConnected) {
+                            return;
+                        }
+
                         let visual;
                         switch (item.type) {
                             case 'oscillation': visual = new OscillationVisual(canvas); break;
@@ -775,6 +785,7 @@
                         this.visuals.push(visual);
                         this.observer.observe(canvas); // OPTIMIZATION: Observe!
                     }, 50);
+                    this.pendingVisualTimeouts.push(timeoutId);
                 });
 
                 if (window.lucide) window.lucide.createIcons();

@@ -276,7 +276,7 @@ class MySpecificVisual extends BaseVisual {
 
 ## 4. Integration
 1.  Add the new file to `Concepts/`.
-2.  Open `index.html`.
+2.  Serve the repo locally and open `http://localhost:8000/index.html`.
 3.  Add a new entry to the `DATA` array:
     ```javascript
     {

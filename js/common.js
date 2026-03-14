@@ -40,6 +40,74 @@ const ThemeManager = {
     }
 };
 
+const ExternalNavigation = {
+    open(url) {
+        const popup = window.open(url, '_blank', 'noopener,noreferrer');
+        if (popup) {
+            popup.opener = null;
+        }
+    },
+
+    openBlank() {
+        const popup = window.open('', '_blank', 'noopener,noreferrer');
+        if (popup) {
+            popup.opener = null;
+        }
+        return popup;
+    },
+
+    navigate(popup, url) {
+        if (popup) {
+            popup.location = url;
+            return;
+        }
+
+        this.open(url);
+    }
+};
+
+const AIProviderLauncher = {
+    launch(model, prompt, options = {}) {
+        const encodedPrompt = encodeURIComponent(prompt);
+
+        if (model === 'gemini') {
+            const geminiAppUrl = options.geminiAppUrl || 'https://gemini.google.com/app';
+            const geminiQueryUrl = options.geminiQueryUrl || `https://gemini.google.com/?q=${encodedPrompt}`;
+            const showClipboardAlert = options.showClipboardAlert !== false;
+
+            if (window.isSecureContext && navigator.clipboard?.writeText) {
+                const popup = ExternalNavigation.openBlank();
+
+                navigator.clipboard.writeText(prompt).then(() => {
+                    if (showClipboardAlert) {
+                        alert("Gemini doesn't support auto-fill. The prompt has been copied to your clipboard.");
+                    }
+
+                    ExternalNavigation.navigate(popup, geminiAppUrl);
+                }).catch(() => {
+                    ExternalNavigation.navigate(popup, geminiQueryUrl);
+                });
+                return;
+            }
+
+            ExternalNavigation.open(geminiQueryUrl);
+            return;
+        }
+
+        const providerUrls = {
+            perplexity: `https://www.perplexity.ai/search?q=${encodedPrompt}`,
+            chatgpt: `https://chatgpt.com/?q=${encodedPrompt}`,
+            claude: `https://claude.ai/new?q=${encodedPrompt}`,
+            grok: `https://grok.com/?q=${encodedPrompt}`
+        };
+
+        const url = providerUrls[model];
+        if (url) {
+            ExternalNavigation.open(url);
+        }
+    }
+};
+
 // Immediate execution to prevent flash IF this script is loaded in head deferred
 // But we actually want to run `setupTheme` ASAP.
 // Optimally, a small inline script in head handles the initial set, but this works traversing the DOM once body exists
@@ -96,6 +164,8 @@ const GitHubStats = {
 };
 
 window.ThemeManager = ThemeManager;
+window.openExternalLink = (url) => ExternalNavigation.open(url);
+window.launchAIPrompt = (model, prompt, options) => AIProviderLauncher.launch(model, prompt, options);
 
 document.addEventListener('DOMContentLoaded', () => {
     ThemeManager.init();

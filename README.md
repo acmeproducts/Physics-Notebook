@@ -65,7 +65,7 @@ git clone https://github.com/CasberryIndia/Physics-Notebook.git
 cd Physics-Notebook
 ```
 
-2. Open `index.html` in your browser
+2. Start a local server from the repo root
 ```bash
 # Using Python's built-in server
 python -m http.server 8000
@@ -75,6 +75,8 @@ npx http-server
 ```
 
 3. Navigate to `http://localhost:8000`
+
+Serving the site locally is the recommended workflow. Some browser APIs used by the AI-assist buttons are restricted on `file://` pages.
 
 That's it! 🎉
 
