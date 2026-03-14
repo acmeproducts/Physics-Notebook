@@ -36,6 +36,8 @@ Verification
   buttons, or `_blank` links.
 - Run `npm run check:browser-a11y` or `npm test` when changing keyboard
   navigation, accessible names, core text contrast, or canvas semantics.
+- When changing sliders or simulation controls, verify `aria-valuetext` and
+  the live simulation status exposed by `js/common.js`.
 - Re-run targeted searches for duplicated `window.open(` patterns, unsafe
   `target="_blank"` usage, and broken element ids when touching shared page
   structure.

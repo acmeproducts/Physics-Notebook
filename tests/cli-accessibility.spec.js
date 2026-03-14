@@ -41,6 +41,28 @@ function contrastRatio(foreground, background) {
     return (lighter + 0.05) / (darker + 0.05);
 }
 
+function parseCssColor(color) {
+    const match = color.match(/rgba?\(([^)]+)\)/i);
+    if (!match) {
+        return parseHexColor(color);
+    }
+
+    const [red, green, blue, alpha = '1'] = match[1].split(',').map((part) => part.trim());
+    return [Number(red), Number(green), Number(blue), Number(alpha)];
+}
+
+function blendColor(foreground, background) {
+    const [fr, fg, fb, fa = 1] = foreground;
+    const [br, bg, bb] = background;
+    const alpha = Number(fa);
+
+    return [
+        Math.round((fr * alpha) + (br * (1 - alpha))),
+        Math.round((fg * alpha) + (bg * (1 - alpha))),
+        Math.round((fb * alpha) + (bb * (1 - alpha)))
+    ];
+}
+
 async function cssVars(page) {
     return page.evaluate(() => {
         const styles = getComputedStyle(document.documentElement);
@@ -48,6 +70,18 @@ async function cssVars(page) {
             bg: styles.getPropertyValue('--bg-color').trim(),
             textMain: styles.getPropertyValue('--text-main').trim(),
             textMuted: styles.getPropertyValue('--text-muted').trim()
+        };
+    });
+}
+
+async function locatorContrast(locator) {
+    return locator.evaluate((element) => {
+        const styles = getComputedStyle(element);
+        const docStyles = getComputedStyle(document.documentElement);
+        return {
+            color: styles.color,
+            backgroundColor: styles.backgroundColor,
+            pageBackground: docStyles.getPropertyValue('--bg-color').trim()
         };
     });
 }
@@ -84,6 +118,30 @@ test('concept canvases expose meaningful accessible names', async ({ page }) => 
     await expect(canvases.nth(2)).toHaveAccessibleName('Equal and Opposite visualization');
 });
 
+test('slider interactions update accessible value text and simulation status', async ({ page }) => {
+    await page.goto('/Concepts/gravitational-waves.html');
+
+    const slider = page.locator('#merger-sep');
+    await expect(slider).toHaveAttribute('aria-label', 'Initial Separation');
+    await expect(slider).toHaveAttribute('aria-valuetext', '120 km');
+
+    await slider.fill('150');
+    await expect(slider).toHaveAttribute('aria-valuetext', '150 km');
+
+    const status = page.locator('#canvas-mergers-status');
+    await expect(status).toContainText('Initial Separation: 150 km');
+
+    const describedBy = await page.locator('#canvas-mergers').getAttribute('aria-describedby');
+    expect(describedBy).toBe('canvas-mergers-status');
+});
+
+test('button-driven simulation controls announce their activation state', async ({ page }) => {
+    await page.goto('/Concepts/projectile-motion.html');
+
+    await page.locator('#btn-fire').click();
+    await expect(page.locator('#canvas-projectile-status')).toContainText('Fire Projectile');
+});
+
 test('sample pages stay free of console and page errors', async ({ page }) => {
     const failures = [];
     page.on('pageerror', (error) => failures.push(`pageerror: ${error.message}`));
@@ -115,4 +173,40 @@ test('core text contrast stays above WCAG AA in light and dark themes', async ({
     const darkBg = parseHexColor(dark.bg);
     expect(contrastRatio(parseHexColor(dark.textMain), darkBg)).toBeGreaterThanOrEqual(4.5);
     expect(contrastRatio(parseHexColor(dark.textMuted), darkBg)).toBeGreaterThanOrEqual(4.5);
+});
+
+test('key UI labels stay above WCAG AA contrast on home and concept pages', async ({ page }) => {
+    await page.goto('/');
+
+    const homeChecks = [
+        '.card-tag',
+        '.github-btn',
+        '.filter-chip.active'
+    ];
+
+    for (const selector of homeChecks) {
+        const colors = await locatorContrast(page.locator(selector).first());
+        const foreground = parseCssColor(colors.color);
+        const background = colors.backgroundColor === 'rgba(0, 0, 0, 0)'
+            ? parseHexColor(colors.pageBackground)
+            : blendColor(parseCssColor(colors.backgroundColor), parseHexColor(colors.pageBackground));
+        expect(contrastRatio(foreground.slice(0, 3), background)).toBeGreaterThanOrEqual(4.5);
+    }
+
+    await page.goto('/Concepts/newtons-laws-of-motion.html');
+
+    const conceptChecks = [
+        '.etu-tag',
+        '.ai-label',
+        '.slider-group label'
+    ];
+
+    for (const selector of conceptChecks) {
+        const colors = await locatorContrast(page.locator(selector).first());
+        const foreground = parseCssColor(colors.color);
+        const background = colors.backgroundColor === 'rgba(0, 0, 0, 0)'
+            ? parseHexColor(colors.pageBackground)
+            : blendColor(parseCssColor(colors.backgroundColor), parseHexColor(colors.pageBackground));
+        expect(contrastRatio(foreground.slice(0, 3), background)).toBeGreaterThanOrEqual(4.5);
+    }
 });

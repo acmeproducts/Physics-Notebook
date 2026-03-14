@@ -33,16 +33,20 @@ Covered by the current browser-backed check
 - AI buttons expose accessible names in the browser accessibility tree.
 - Concept-page canvases expose accessible names derived from their section
   headings.
+- Slider interaction updates accessible value text and announces simulation
+  status changes.
+- Button-driven simulation controls announce when they are activated.
 - Sample pages stay free of browser console errors and page errors.
 - Core text colors stay above WCAG AA contrast in light and dark themes.
+- Key UI labels and buttons also stay above WCAG AA contrast on sampled pages.
 
 Not yet CLI-covered, but should be
 
-- Screen-reader behavior for dynamic simulation changes, not just static labels.
-- Slider-driven interaction checks on the concept pages.
-- Wider contrast coverage beyond the core text tokens.
+- Continuous or time-based simulation updates after an interaction.
+- More than one representative button interaction pattern.
+- Broader contrast coverage across all concept-specific inline styles.
 
 Good next step
 
-- Extend the browser automation to cover console-error checks and at least one
-  concept page with slider interaction.
+- Extend the browser automation to cover one long-running simulation where the
+  canvas state changes after a control update, not just the announced status.
