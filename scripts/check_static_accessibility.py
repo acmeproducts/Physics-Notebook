@@ -54,10 +54,38 @@ def check_index_cards():
     return issues
 
 
+def check_local_font_setup():
+    issues = []
+    banned_references = ("fonts.googleapis.com", "fonts.gstatic.com")
+    doc_paths = sorted(ROOT.rglob("*.html")) + [ROOT / "CONCEPT_PATTERN.md"]
+
+    for path in doc_paths:
+        if not path.exists():
+            continue
+        content = path.read_text(encoding="utf-8")
+        if any(reference in content for reference in banned_references):
+            issues.append(f"{path.relative_to(ROOT)}: found remote Google Fonts reference")
+
+    required_font_files = [
+        ROOT / "assets" / "fonts" / "dm-serif-display-latin.woff2",
+        ROOT / "assets" / "fonts" / "dm-serif-display-latin-ext.woff2",
+        ROOT / "assets" / "fonts" / "inter-latin.woff2",
+        ROOT / "assets" / "fonts" / "inter-latin-ext.woff2",
+        ROOT / "assets" / "fonts" / "jetbrains-mono-latin.woff2",
+        ROOT / "assets" / "fonts" / "jetbrains-mono-latin-ext.woff2",
+    ]
+    for path in required_font_files:
+        if not path.exists():
+            issues.append(f"{path.relative_to(ROOT)}: missing local font asset")
+
+    return issues
+
+
 def main():
     issues = []
     issues.extend(check_html_files())
     issues.extend(check_index_cards())
+    issues.extend(check_local_font_setup())
 
     if issues:
         print("Static accessibility check failed:")

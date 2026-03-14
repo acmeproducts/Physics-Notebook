@@ -17,11 +17,6 @@ Use the following structure for the HTML file.
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>[Concept Title] • Physics Notebook</title>
 
-    <!-- Standard Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-
     <!-- Standard Framework Styles -->
     <link rel="stylesheet" href="../css/common.css">
     <link rel="stylesheet" href="../css/article.css">
@@ -141,7 +136,8 @@ Use the following structure for the HTML file.
 The JavaScript structure handles the canvas animations, theme updates, and intersection observing (for performance).
 
 ### 3.1 Standard `openAI` Function
-Includes handlers for all 5 supported AI models.
+Use the shared `launchAIPrompt()` helper from `../js/common.js` instead of
+duplicating direct provider and clipboard logic in each page.
 
 ```javascript
 function openAI(topic, model) {
@@ -151,20 +147,7 @@ function openAI(topic, model) {
         case 'topic1': prompt = "Query 1..."; break;
         // ...
     }
-    const encoded = encodeURIComponent(prompt);
-
-    // Gemini Handling (Clipboard + Open)
-    if (model === 'gemini') { /* ... standard gemini handler ... */ return; }
-
-    // URL Generation
-    let url = "";
-    switch (model) {
-        case 'perplexity': url = `https://www.perplexity.ai/search?q=${encoded}`; break;
-        case 'chatgpt': url = `https://chatgpt.com/?q=${encoded}`; break;
-        case 'claude': url = `https://claude.ai/new?q=${encoded}`; break;
-        case 'grok': url = `https://grok.com/?q=${encoded}`; break;
-    }
-    if (url) window.open(url, '_blank');
+    launchAIPrompt(model, prompt);
 }
 ```
 
@@ -310,5 +293,7 @@ class MySpecificVisual extends BaseVisual {
     ```
 
 ## 5. Design & Accessibility Standards
+- **Shared Typography**: Standard site fonts are bundled locally and loaded through `../css/common.css`. Do not add page-level Google Fonts includes for `DM Serif Display`, `Inter`, or `JetBrains Mono`.
+- **Shared Design Rules**: Read `STYLE_GUIDE.md` before changing shared typography, layout, color, or motion behavior.
 - **Readable and Responsive Simulation Text**: The text labels in the simulations must be clearly readable. Make sure they are responsive for all devices (e.g., using dynamic sizing with `this.scale` for high-DPI displays) and clearly legible across all simulations.
 - **Interactive Controls Placement**: Interactive controls, such as sliders, toggle switches, or buttons, must always be positioned **above** the simulations on mobile and tablet responsive views. Furthermore, both the controls and the canvas simulation they affect should comfortably fit within the viewport of the device simultaneously to prevent the user from having to scroll up and down to observe the simulation changes.

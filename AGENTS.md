@@ -26,6 +26,10 @@ Editing rules
   anchors or the shared JS helper in `js/common.js`.
 - Concept pages should keep the existing relative path convention from
   `Concepts/` to `../css/` and `../js/`.
+- Shared typography is vendored under `assets/fonts/` and loaded from
+  `css/common.css`; do not reintroduce Google Fonts tags for those families.
+- Consult `STYLE_GUIDE.md` before making cross-page layout, typography, color,
+  or motion changes.
 - If you add a new concept page, update the `DATA` array in `index.html` and
   follow `CONCEPT_PATTERN.md`.
 

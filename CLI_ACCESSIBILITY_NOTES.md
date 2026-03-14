@@ -26,6 +26,8 @@ Covered by the current static check
 - Homepage cards stay semantic anchors instead of mouse-only click targets.
 - AI buttons keep an accessible name source in markup.
 - External `_blank` anchors retain `rel="noopener noreferrer"`.
+- Shared pages and templates do not reintroduce remote Google Fonts tags.
+- Required local font assets remain present in `assets/fonts/`.
 
 Covered by the current browser-backed check
 
