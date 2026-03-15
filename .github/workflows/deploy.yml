@@ -5,6 +5,9 @@ on:
     branches:
       - main
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -16,10 +19,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Debug Info
+        run: |
+          echo "Checking Cloudflare Secrets..."
+          if [ -z "${{ secrets.CLOUDFLARE_API_TOKEN }}" ]; then echo "Error: CLOUDFLARE_API_TOKEN is missing"; else echo "CLOUDFLARE_API_TOKEN is present"; fi
+          if [ -z "${{ secrets.CLOUDFLARE_ACCOUNT_ID }}" ]; then echo "Error: CLOUDFLARE_ACCOUNT_ID is missing"; else echo "CLOUDFLARE_ACCOUNT_ID is present"; fi
+
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
-        env:
-          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
