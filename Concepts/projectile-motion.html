@@ -6,13 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Projectile Motion • Physics Notebook</title>
 
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
-        rel="stylesheet">
-
     <!-- Styles -->
     <link rel="stylesheet" href="../css/common.css">
     <link rel="stylesheet" href="../css/article.css">
@@ -374,10 +367,10 @@
             <ul>
                 <li><strong>Halliday, D., Resnick, R., & Walker, J.</strong> (2013). <a
                         href="https://www.wiley.com/en-us/Fundamentals+of+Physics%2C+10th+Edition-p-9781118230718"
-                        target="_blank">Fundamentals of Physics</a>. 10th Edition. Wiley.</li>
+                        target="_blank" rel="noopener noreferrer">Fundamentals of Physics</a>. 10th Edition. Wiley.</li>
                 <li><strong>Serway, R. A., & Jewett, J. W.</strong> (2018). <a
                         href="https://www.cengage.com/c/physics-for-scientists-and-engineers-10e-serway/9781337553278/"
-                        target="_blank">Physics for Scientists and Engineers with Modern Physics</a>. Cengage Learning.
+                        target="_blank" rel="noopener noreferrer">Physics for Scientists and Engineers with Modern Physics</a>. Cengage Learning.
                 </li>
             </ul>
         </div>
@@ -399,24 +392,7 @@
                     prompt = "Explain why an angle of 45 degrees yields the maximum range in projectile motion neglecting air resistance, and why complementary angles produce the same range.";
                     break;
             }
-            const encoded = encodeURIComponent(prompt);
-
-            if (model === 'gemini') {
-                navigator.clipboard.writeText(prompt).then(() => {
-                    alert("Gemini doesn't support auto-fill. The prompt has been copied to your clipboard.");
-                    window.open('https://gemini.google.com/app', '_blank');
-                });
-                return;
-            }
-
-            let url = "";
-            switch (model) {
-                case 'perplexity': url = `https://www.perplexity.ai/search?q=${encoded}`; break;
-                case 'chatgpt': url = `https://chatgpt.com/?q=${encoded}`; break;
-                case 'claude': url = `https://claude.ai/new?q=${encoded}`; break;
-                case 'grok': url = `https://grok.com/?q=${encoded}`; break;
-            }
-            if (url) window.open(url, '_blank');
+            launchAIPrompt(model, prompt);
         }
         const APP = {
             visuals: [],

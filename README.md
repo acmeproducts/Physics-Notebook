@@ -65,7 +65,7 @@ git clone https://github.com/CasberryIndia/Physics-Notebook.git
 cd Physics-Notebook
 ```
 
-2. Open `index.html` in your browser
+2. Start a local server from the repo root
 ```bash
 # Using Python's built-in server
 python -m http.server 8000
@@ -76,6 +76,8 @@ npx http-server
 
 3. Navigate to `http://localhost:8000`
 
+Serving the site locally is the recommended workflow. Some browser APIs used by the AI-assist buttons are restricted on `file://` pages.
+
 That's it! 🎉
 
 ## 📂 Project Structure
@@ -83,7 +85,10 @@ That's it! 🎉
 ```
 Physics-Notebook/
 ├── index.html              # Main library page
+├── STYLE_GUIDE.md          # Shared layout and design rules
 ├── CONCEPT_PATTERN.md      # Guide for creating new concepts
+├── assets/
+│   └── fonts/              # Local webfont binaries and licenses
 ├── Concepts/               # Individual concept pages
 │   ├── simple-pendulum.html
 │   ├── double-slit-experiment.html
@@ -128,7 +133,7 @@ touch Concepts/your-concept-name.html
 Every concept should have:
 
 - **HTML Structure**
-  - `<head>` with proper metadata, fonts, MathJax, GSAP, Lucide icons
+  - `<head>` with proper metadata, shared styles, MathJax, GSAP, Lucide icons
   - Navigation bar with back button and theme toggle
   - Hero section with concept title and description
   - 3 sections with split-layout (content + visualization)
@@ -204,6 +209,9 @@ Update `index.html` DATA array:
 - ✅ Responsive on mobile devices
 - ✅ Canvas animations are smooth (60fps)
 
+Refer to [STYLE_GUIDE.md](STYLE_GUIDE.md) when changing shared typography,
+layout, motion, or page structure.
+
 ### Contribution Guidelines
 
 - **Code Style**: Follow existing patterns for consistency
@@ -215,6 +223,7 @@ Update `index.html` DATA array:
 
 ## 📚 Resources
 
+- [STYLE_GUIDE.md](STYLE_GUIDE.md) - Shared layout, typography, and interaction rules
 - [CONCEPT_PATTERN.md](CONCEPT_PATTERN.md) - Detailed guide for creating concepts
 - [MathJax Documentation](https://www.mathjax.org/)
 - [GSAP Documentation](https://greensock.com/docs/)
@@ -224,10 +233,10 @@ Update `index.html` DATA array:
 
 ### Visual Excellence
 We prioritize stunning visuals over minimal viable products. Every concept should:
-- Use vibrant, harmonious color palettes
-- Include smooth, engaging animations
+- Use the shared typography and restrained accent palette consistently
+- Include smooth, purposeful animations
 - Provide immediate visual feedback
-- Feel premium and polished
+- Feel polished without decorative excess
 
 ### Educational Value
 Each concept must:

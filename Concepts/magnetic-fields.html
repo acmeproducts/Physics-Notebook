@@ -6,13 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Magnetic Fields • Physics Notebook</title>
 
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
-        rel="stylesheet">
-
     <!-- Styles -->
     <link rel="stylesheet" href="../css/common.css">
     <link rel="stylesheet" href="../css/article.css">
@@ -483,25 +476,10 @@
                     prompt = "Explain electromagnetic induction: Faraday's law, Lenz's law, how generators work, magnetic flux, and practical applications from power plants to wireless charging.";
                     break;
             }
-            const encoded = encodeURIComponent(prompt);
-
-            if (model === 'gemini') {
-                navigator.clipboard.writeText(prompt).then(() => {
-                    window.open('https://gemini.google.com/', '_blank');
-                }).catch(err => {
-                    window.open(`https://gemini.google.com/?q=${encoded}`, '_blank');
-                });
-                return;
-            }
-
-            let url = "";
-            switch (model) {
-                case 'perplexity': url = `https://www.perplexity.ai/search?q=${encoded}`; break;
-                case 'chatgpt': url = `https://chatgpt.com/?q=${encoded}`; break;
-                case 'claude': url = `https://claude.ai/new?q=${encoded}`; break;
-                case 'grok': url = `https://grok.com/?q=${encoded}`; break;
-            }
-            if (url) window.open(url, '_blank');
+            launchAIPrompt(model, prompt, {
+                geminiAppUrl: 'https://gemini.google.com/',
+                showClipboardAlert: false
+            });
         }
 
         // ------------------------------------------------------------------

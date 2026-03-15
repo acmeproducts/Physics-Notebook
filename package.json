@@ -1,0 +1,13 @@
+{
+  "name": "physics-notebook",
+  "private": true,
+  "scripts": {
+    "check:static-a11y": "python scripts/check_static_accessibility.py",
+    "check:browser-a11y": "playwright test",
+    "check:cli-a11y": "npm run check:static-a11y && npm run check:browser-a11y",
+    "test": "npm run check:cli-a11y"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.58.2"
+  }
+}

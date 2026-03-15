@@ -6,13 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gravitational Waves • Physics Notebook</title>
 
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
-        rel="stylesheet">
-
     <!-- Styles -->
     <link rel="stylesheet" href="../css/common.css">
     <link rel="stylesheet" href="../css/article.css">
@@ -499,25 +492,10 @@
                     prompt = "Explain how LIGO detects gravitational waves: laser interferometry, 4km arms, detecting changes smaller than a proton, 2015 discovery, and multi-messenger astronomy.";
                     break;
             }
-            const encoded = encodeURIComponent(prompt);
-
-            if (model === 'gemini') {
-                navigator.clipboard.writeText(prompt).then(() => {
-                    window.open('https://gemini.google.com/', '_blank');
-                }).catch(err => {
-                    window.open(`https://gemini.google.com/?q=${encoded}`, '_blank');
-                });
-                return;
-            }
-
-            let url = "";
-            switch (model) {
-                case 'perplexity': url = `https://www.perplexity.ai/search?q=${encoded}`; break;
-                case 'chatgpt': url = `https://chatgpt.com/?q=${encoded}`; break;
-                case 'claude': url = `https://claude.ai/new?q=${encoded}`; break;
-                case 'grok': url = `https://grok.com/?q=${encoded}`; break;
-            }
-            if (url) window.open(url, '_blank');
+            launchAIPrompt(model, prompt, {
+                geminiAppUrl: 'https://gemini.google.com/',
+                showClipboardAlert: false
+            });
         }
 
         // ------------------------------------------------------------------
@@ -774,7 +752,7 @@
                 this.r -= dr;
 
                 if (this.r < 15) {
-                    this.r = parseFloat(document.getElementById('input-merger-sep').value);
+                    this.r = parseFloat(document.getElementById('merger-sep').value);
                     this.phase = 0;
                     this.flashTime = 20;
                 }

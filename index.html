@@ -6,13 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Physics Lab • Library</title>
 
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400&display=swap"
-        rel="stylesheet">
-
     <!-- CSS -->
     <link rel="stylesheet" href="css/common.css">
     <link rel="stylesheet" href="css/home.css">
@@ -38,7 +31,7 @@
             Physics • Notebook
         </div>
         <div class="nav-controls">
-            <a href="https://github.com/CasberryIndia/Physics-Notebook" target="_blank" class="github-btn"
+            <a href="https://github.com/CasberryIndia/Physics-Notebook" target="_blank" rel="noopener noreferrer" class="github-btn"
                 title="View Source on GitHub">
                 <i data-lucide="github" style="width:16px;"></i>
                 <span id="starCount">...</span>
@@ -689,6 +682,8 @@
         const App = {
             visuals: [],
             observer: null,
+            pendingVisualTimeouts: [],
+            renderVersion: 0,
 
             init() {
                 this.setupObserver();
@@ -719,6 +714,10 @@
 
             renderGrid(data) {
                 const grid = document.getElementById('cardsGrid');
+                const renderVersion = ++this.renderVersion;
+
+                this.pendingVisualTimeouts.forEach(timeoutId => clearTimeout(timeoutId));
+                this.pendingVisualTimeouts = [];
                 grid.innerHTML = '';
 
                 // Disconnect old observations
@@ -731,10 +730,10 @@
                 }
 
                 data.forEach((item, index) => {
-                    const card = document.createElement('article');
+                    const card = document.createElement('a');
                     card.className = 'card';
+                    card.href = item.href;
                     card.style.opacity = 0;
-                    card.onclick = () => this.handleCardClick(item);
 
                     card.innerHTML = `
                         <div class="card-visual">
@@ -754,7 +753,11 @@
 
                     // Initialize Visual
                     const canvas = card.querySelector('canvas');
-                    setTimeout(() => {
+                    const timeoutId = setTimeout(() => {
+                        if (renderVersion !== this.renderVersion || !canvas.isConnected) {
+                            return;
+                        }
+
                         let visual;
                         switch (item.type) {
                             case 'oscillation': visual = new OscillationVisual(canvas); break;
@@ -775,6 +778,7 @@
                         this.visuals.push(visual);
                         this.observer.observe(canvas); // OPTIMIZATION: Observe!
                     }, 50);
+                    this.pendingVisualTimeouts.push(timeoutId);
                 });
 
                 if (window.lucide) window.lucide.createIcons();
@@ -823,14 +827,6 @@
                 // Loop is always running, but individual draw() calls check isVisible flag
                 this.visuals.forEach(v => v.draw());
                 requestAnimationFrame(() => this.animateLoop());
-            },
-
-            handleCardClick(item) {
-                if (item.href) {
-                    window.location.href = item.href;
-                } else {
-                    alert(`Detailed view for ${item.title} is under construction.`);
-                }
             }
         };
 

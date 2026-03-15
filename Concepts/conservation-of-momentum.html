@@ -6,13 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Conservation of Momentum • Physics Notebook</title>
 
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
-        rel="stylesheet">
-
     <!-- Styles -->
     <link rel="stylesheet" href="../css/common.css">
     <link rel="stylesheet" href="../css/article.css">
@@ -427,24 +420,7 @@
                 case 'explosion_momentum': prompt = "Explain the conservation of momentum in an explosion or perfectly inelastic situation."; break;
                 case 'angular_momentum': prompt = "Explain the conservation of angular momentum particularly relating to moment of inertia and angular velocity."; break;
             }
-            const encoded = encodeURIComponent(prompt);
-
-            if (model === 'gemini') {
-                navigator.clipboard.writeText(prompt).then(() => {
-                    alert("Gemini doesn't support auto-fill. The prompt has been copied to your clipboard.");
-                    window.open('https://gemini.google.com/app', '_blank');
-                });
-                return;
-            }
-
-            let url = "";
-            switch (model) {
-                case 'perplexity': url = `https://www.perplexity.ai/search?q=${encoded}`; break;
-                case 'chatgpt': url = `https://chatgpt.com/?q=${encoded}`; break;
-                case 'claude': url = `https://claude.ai/new?q=${encoded}`; break;
-                case 'grok': url = `https://grok.com/?q=${encoded}`; break;
-            }
-            if (url) window.open(url, '_blank');
+            launchAIPrompt(model, prompt);
         }
 
         const APP = {

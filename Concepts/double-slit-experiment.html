@@ -6,13 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Double Slit Experiment • Physics Notebook</title>
 
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
-        rel="stylesheet">
-
     <!-- Styles -->
     <link rel="stylesheet" href="../css/common.css">
     <link rel="stylesheet" href="../css/article.css">
@@ -304,8 +297,8 @@
                 </div>
                 <div class="sim-controls">
                     <div class="slider-group">
-                        <label>Emission Rate <span id="val-emission">10</span> frames</label>
-                        <input type="range" id="input-emission" min="3" max="30" step="1" value="10">
+                        <label>Emission Rate <span id="val-emission">6</span> frames</label>
+                        <input type="range" id="input-emission" min="3" max="30" step="1" value="6">
                     </div>
                     <div style="margin-top:0.5rem; text-align:right;">
                         <button id="btn-clear-quantum"
@@ -435,24 +428,7 @@
                     prompt = "What is the observer effect in the double slit experiment? How does measurement change the outcome?";
                     break;
             }
-            const encoded = encodeURIComponent(prompt);
-
-            if (model === 'gemini') {
-                navigator.clipboard.writeText(prompt).then(() => {
-                    alert("Gemini doesn't support auto-fill. The prompt has been copied to your clipboard.");
-                    window.open('https://gemini.google.com/app', '_blank');
-                });
-                return;
-            }
-
-            let url = "";
-            switch (model) {
-                case 'perplexity': url = `https://www.perplexity.ai/search?q=${encoded}`; break;
-                case 'chatgpt': url = `https://chatgpt.com/?q=${encoded}`; break;
-                case 'claude': url = `https://claude.ai/new?q=${encoded}`; break;
-                case 'grok': url = `https://grok.com/?q=${encoded}`; break;
-            }
-            if (url) window.open(url, '_blank');
+            launchAIPrompt(model, prompt);
         }
 
         const APP = {
@@ -505,6 +481,9 @@
                 this.canvas = document.getElementById(id);
                 this.ctx = this.canvas.getContext('2d');
                 this.isVisible = false;
+                this.detectionBins = [];
+                this.recentDetections = [];
+                this.binHeight = 6;
                 this.updateColors();
                 this.resize();
                 window.addEventListener('resize', () => this.resize());
@@ -523,10 +502,208 @@
                 this.scale = 2;
                 this.cx = this.canvas.width / 2;
                 this.cy = this.canvas.height / 2;
+                this.binHeight = 3 * this.scale;
+                this.ensureDetectionBins();
             }
             loop() {
                 if (this.isVisible) this.draw();
                 requestAnimationFrame(() => this.loop());
+            }
+            getGeometry(overrides = {}) {
+                return {
+                    sourceX: 72 * this.scale,
+                    slitX: this.cx - 150 * this.scale,
+                    screenX: this.cx + 110 * this.scale,
+                    screenWidth: 16 * this.scale,
+                    histogramWidth: 60 * this.scale,
+                    slitY: this.cy,
+                    slitGap: 80 * this.scale,
+                    slitHalfHeight: 18 * this.scale,
+                    detectorTop: 18 * this.scale,
+                    detectorBottom: this.canvas.height - 18 * this.scale,
+                    ...overrides
+                };
+            }
+            drawApparatus(geometry, options = {}) {
+                const {
+                    detectorAlpha = 0.08,
+                    showSource = true,
+                    showObserverSensors = false
+                } = options;
+                const {
+                    sourceX,
+                    slitX,
+                    screenX,
+                    screenWidth,
+                    slitY,
+                    slitGap,
+                    slitHalfHeight,
+                    detectorTop,
+                    detectorBottom
+                } = geometry;
+
+                if (showSource) {
+                    this.ctx.fillStyle = this.secondary;
+                    this.ctx.globalAlpha = 0.16;
+                    this.ctx.beginPath();
+                    this.ctx.arc(sourceX, slitY, 8 * this.scale, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    this.ctx.globalAlpha = 1;
+                }
+
+                if (showObserverSensors) {
+                    this.ctx.fillStyle = this.secondary;
+                    this.ctx.globalAlpha = 0.18;
+                    [-1, 1].forEach((direction) => {
+                        const sensorY = slitY + direction * slitGap / 2 - 10 * this.scale;
+                        this.ctx.fillRect(slitX - 18 * this.scale, sensorY, 10 * this.scale, 20 * this.scale);
+                    });
+                    this.ctx.globalAlpha = 1;
+                }
+
+                this.ctx.strokeStyle = this.color;
+                this.ctx.lineWidth = 3 * this.scale;
+                this.ctx.beginPath();
+                this.ctx.moveTo(slitX, 0);
+                this.ctx.lineTo(slitX, slitY - slitGap / 2 - slitHalfHeight);
+                this.ctx.moveTo(slitX, slitY - slitGap / 2 + slitHalfHeight);
+                this.ctx.lineTo(slitX, slitY + slitGap / 2 - slitHalfHeight);
+                this.ctx.moveTo(slitX, slitY + slitGap / 2 + slitHalfHeight);
+                this.ctx.lineTo(slitX, this.canvas.height);
+                this.ctx.stroke();
+
+                this.ctx.fillStyle = this.color;
+                this.ctx.globalAlpha = detectorAlpha;
+                this.ctx.fillRect(screenX, detectorTop, screenWidth, detectorBottom - detectorTop);
+                this.ctx.globalAlpha = 1;
+                this.ctx.strokeStyle = this.color;
+                this.ctx.lineWidth = 2 * this.scale;
+                this.ctx.strokeRect(screenX, detectorTop, screenWidth, detectorBottom - detectorTop);
+            }
+            getInterferenceIntensity(y, geometry, options = {}) {
+                const wavelength = options.wavelength ?? 1;
+                const slitGap = options.slitGap ?? geometry.slitGap;
+                const distance = Math.max(geometry.screenX - geometry.slitX, 1);
+                const wavelengthPx = 22 * this.scale * wavelength;
+                const slitWidth = 14 * this.scale;
+                const yOffset = y - geometry.slitY;
+                const alpha = Math.PI * slitGap * yOffset / (wavelengthPx * distance);
+                const beta = Math.PI * slitWidth * yOffset / (wavelengthPx * distance);
+                const envelope = Math.abs(beta) < 1e-6 ? 1 : Math.pow(Math.sin(beta) / beta, 2);
+                const fringe = 0.5 + 0.5 * Math.cos(2 * alpha);
+                return Math.max(0, Math.min(1, Math.pow(envelope, 0.75) * (0.08 + fringe * 0.92)));
+            }
+            getObservedIntensity(y, geometry, options = {}) {
+                const slitGap = options.slitGap ?? geometry.slitGap;
+                const yOffset = y - geometry.slitY;
+                const sigma = slitGap * 0.22 + 10 * this.scale;
+                const upperBand = Math.exp(-((yOffset + slitGap / 2) ** 2) / (2 * sigma * sigma));
+                const lowerBand = Math.exp(-((yOffset - slitGap / 2) ** 2) / (2 * sigma * sigma));
+                const envelope = Math.exp(-Math.pow(yOffset / (this.canvas.height * 0.34), 2));
+                return Math.max(0, Math.min(1, 0.85 * (upperBand + lowerBand) * envelope));
+            }
+            drawScreenGuide(geometry, color, intensityFn, options = {}) {
+                const step = options.step ?? 3 * this.scale;
+                const minAlpha = options.minAlpha ?? 0.04;
+                const maxAlpha = options.maxAlpha ?? 0.5;
+                const histogramAlpha = options.histogramAlpha ?? 0.18;
+                const histogramWidth = options.histogramWidth ?? geometry.histogramWidth;
+                const barX = geometry.screenX + geometry.screenWidth + 4 * this.scale;
+
+                this.ctx.fillStyle = color;
+                for (let y = geometry.detectorTop; y < geometry.detectorBottom; y += step) {
+                    const intensity = Math.max(0, Math.min(1, intensityFn(y + step / 2)));
+                    if (intensity < 0.01) continue;
+
+                    this.ctx.globalAlpha = minAlpha + intensity * (maxAlpha - minAlpha);
+                    this.ctx.fillRect(geometry.screenX, y, geometry.screenWidth, step);
+
+                    this.ctx.globalAlpha = intensity * histogramAlpha;
+                    this.ctx.fillRect(barX, y, histogramWidth * intensity, step);
+                }
+                this.ctx.globalAlpha = 1;
+            }
+            ensureDetectionBins() {
+                const totalBins = Math.max(1, Math.ceil(this.canvas.height / this.binHeight));
+                if (this.detectionBins.length === totalBins) return;
+
+                const nextBins = new Array(totalBins).fill(0);
+                const limit = Math.min(totalBins, this.detectionBins.length);
+                for (let i = 0; i < limit; i++) {
+                    nextBins[i] = this.detectionBins[i];
+                }
+                this.detectionBins = nextBins;
+            }
+            clearDetectionPattern() {
+                this.detectionBins = [];
+                this.recentDetections = [];
+                this.ensureDetectionBins();
+            }
+            recordDetection(y) {
+                this.ensureDetectionBins();
+                const index = Math.max(0, Math.min(this.detectionBins.length - 1, Math.floor(y / this.binHeight)));
+                this.detectionBins[index] += 1;
+                this.recentDetections.push({
+                    y,
+                    xOffset: Math.random() * (10 * this.scale),
+                    life: 1
+                });
+                if (this.recentDetections.length > 240) {
+                    this.recentDetections.shift();
+                }
+            }
+            drawDetectionPattern(geometry, color) {
+                this.ensureDetectionBins();
+                let maxCount = 1;
+                for (const count of this.detectionBins) {
+                    if (count > maxCount) maxCount = count;
+                }
+
+                const barX = geometry.screenX + geometry.screenWidth + 4 * this.scale;
+                this.ctx.fillStyle = color;
+                for (let index = 0; index < this.detectionBins.length; index++) {
+                    const count = this.detectionBins[index];
+                    if (!count) continue;
+
+                    const y = index * this.binHeight;
+                    const intensity = count / maxCount;
+                    this.ctx.globalAlpha = 0.08 + intensity * 0.32;
+                    this.ctx.fillRect(geometry.screenX, y, geometry.screenWidth, this.binHeight - 1);
+                    this.ctx.globalAlpha = 0.12 + intensity * 0.55;
+                    this.ctx.fillRect(barX, y, geometry.histogramWidth * intensity, this.binHeight - 1);
+                }
+
+                this.recentDetections = this.recentDetections.filter((detection) => detection.life > 0.04);
+                this.recentDetections.forEach((detection) => {
+                    detection.life -= 0.025;
+                    this.ctx.globalAlpha = detection.life * 0.9;
+                    this.ctx.beginPath();
+                    this.ctx.arc(
+                        geometry.screenX + 2 * this.scale + detection.xOffset,
+                        detection.y,
+                        2.2 * this.scale,
+                        0,
+                        Math.PI * 2
+                    );
+                    this.ctx.fill();
+                });
+                this.ctx.globalAlpha = 1;
+            }
+            sampleDetectionY(geometry, intensityFn) {
+                let bestY = geometry.slitY;
+                let bestScore = -1;
+
+                for (let i = 0; i < 18; i++) {
+                    const y = geometry.detectorTop + Math.random() * (geometry.detectorBottom - geometry.detectorTop);
+                    const score = intensityFn(y);
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestY = y;
+                    }
+                    if (Math.random() < score) return y;
+                }
+
+                return bestY;
             }
             draw() { }
         }
@@ -556,37 +733,40 @@
             draw() {
                 this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
                 this.time += 0.03;
+                const slitGap = 80 * this.scale * this.slitSeparation;
+                const geometry = this.getGeometry({ slitGap });
+                const slitPositions = [
+                    geometry.slitY - slitGap / 2,
+                    geometry.slitY + slitGap / 2
+                ];
+                const intensityFn = (y) => this.getInterferenceIntensity(y, geometry, {
+                    wavelength: this.wavelength,
+                    slitGap
+                });
 
-                const slitY = this.cy;
-                const slitSeparation = 80 * this.scale * this.slitSeparation;
-                const slit1Y = slitY - slitSeparation / 2;
-                const slit2Y = slitY + slitSeparation / 2;
+                this.drawApparatus(geometry);
 
-                // Draw slits
-                this.ctx.strokeStyle = this.color;
-                this.ctx.lineWidth = 3 * this.scale;
-                this.ctx.beginPath();
-                this.ctx.moveTo(this.cx - 150 * this.scale, 0);
-                this.ctx.lineTo(this.cx - 150 * this.scale, slit1Y - 20 * this.scale);
-                this.ctx.moveTo(this.cx - 150 * this.scale, slit1Y + 20 * this.scale);
-                this.ctx.lineTo(this.cx - 150 * this.scale, slit2Y - 20 * this.scale);
-                this.ctx.moveTo(this.cx - 150 * this.scale, slit2Y + 20 * this.scale);
-                this.ctx.lineTo(this.cx - 150 * this.scale, this.canvas.height);
-                this.ctx.stroke();
+                const waveSpacing = 26 * this.scale * this.wavelength;
+                const phaseOffset = (this.time * 18 * this.scale) % waveSpacing;
+                const maxRadius = geometry.screenX - geometry.slitX + 40 * this.scale;
 
-                // Draw interference pattern
-                for (let y = 0; y < this.canvas.height; y += 4 * this.scale) {
-                    const dy = y - slitY;
-                    const distance1 = Math.sqrt((dy + slitSeparation / 2) ** 2 + (200 * this.scale) ** 2);
-                    const distance2 = Math.sqrt((dy - slitSeparation / 2) ** 2 + (200 * this.scale) ** 2);
-                    const phaseDiff = (distance1 - distance2) * (0.05 / this.wavelength) + this.time;
-                    const intensity = Math.cos(phaseDiff) ** 2;
-
-                    this.ctx.fillStyle = this.accent;
-                    this.ctx.globalAlpha = intensity * 0.8;
-                    this.ctx.fillRect(this.cx + 100 * this.scale, y, 6 * this.scale, 4 * this.scale);
-                }
+                this.ctx.strokeStyle = this.accent;
+                this.ctx.lineWidth = 1.5 * this.scale;
+                slitPositions.forEach((slitPosition) => {
+                    for (let radius = 10 * this.scale + phaseOffset; radius < maxRadius; radius += waveSpacing) {
+                        this.ctx.globalAlpha = Math.max(0.03, 0.2 - radius / (maxRadius * 1.2));
+                        this.ctx.beginPath();
+                        this.ctx.arc(geometry.slitX, slitPosition, radius, -Math.PI / 2.6, Math.PI / 2.6);
+                        this.ctx.stroke();
+                    }
+                });
                 this.ctx.globalAlpha = 1;
+
+                this.drawScreenGuide(geometry, this.accent, intensityFn, {
+                    minAlpha: 0.06,
+                    maxAlpha: 0.82,
+                    histogramAlpha: 0.22
+                });
             }
         }
 
@@ -594,14 +774,12 @@
             constructor(id) {
                 super(id);
                 this.particles = [];
-                this.detections = [];
-                this.maxDetections = 400;
                 this.particleTimer = 0;
-                this.emissionRate = 10;
 
                 // Setup controls
                 const emissionInput = document.getElementById('input-emission');
                 const clearBtn = document.getElementById('btn-clear-quantum');
+                this.emissionRate = parseInt(emissionInput.value, 10);
 
                 emissionInput.addEventListener('input', (e) => {
                     this.emissionRate = parseInt(e.target.value);
@@ -609,67 +787,61 @@
                 });
 
                 clearBtn.addEventListener('click', () => {
-                    this.detections = [];
                     this.particles = [];
+                    this.clearDetectionPattern();
                 });
             }
 
             draw() {
                 this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                const geometry = this.getGeometry();
+                const intensityFn = (y) => this.getInterferenceIntensity(y, geometry);
 
-                const slitY = this.cy;
-                const slitSeparation = 80 * this.scale;
+                this.drawApparatus(geometry);
+                this.drawScreenGuide(geometry, this.secondary, intensityFn, {
+                    minAlpha: 0.015,
+                    maxAlpha: 0.14,
+                    histogramAlpha: 0.08
+                });
 
-                // Draw slits
-                this.ctx.strokeStyle = this.color;
-                this.ctx.lineWidth = 3 * this.scale;
-                this.ctx.beginPath();
-                const slitX = this.cx - 150 * this.scale;
-                this.ctx.moveTo(slitX, 0);
-                this.ctx.lineTo(slitX, slitY - slitSeparation / 2 - 20 * this.scale);
-                this.ctx.moveTo(slitX, slitY - slitSeparation / 2 + 20 * this.scale);
-                this.ctx.lineTo(slitX, slitY + slitSeparation / 2 - 20 * this.scale);
-                this.ctx.moveTo(slitX, slitY + slitSeparation / 2 + 20 * this.scale);
-                this.ctx.lineTo(slitX, this.canvas.height);
-                this.ctx.stroke();
-
-                // Emit particles based on emission rate
-                this.particleTimer++;
-                if (this.particleTimer > this.emissionRate) {
-                    this.particles.push({ x: 50 * this.scale, y: slitY, vx: 4 * this.scale, vy: 0 });
+                this.particleTimer += 1;
+                if (this.particleTimer >= this.emissionRate) {
+                    this.particles.push({
+                        x: geometry.sourceX,
+                        y: geometry.slitY,
+                        slitY: geometry.slitY,
+                        targetY: this.sampleDetectionY(geometry, intensityFn),
+                        vx: 6 * this.scale
+                    });
                     this.particleTimer = 0;
                 }
 
-                // Update particles
                 this.particles = this.particles.filter(p => {
                     p.x += p.vx;
-                    if (p.x > this.cx + 100 * this.scale) {
-                        const dy = p.y - slitY;
-                        const distance1 = Math.sqrt((dy + slitSeparation / 2) ** 2 + (250 * this.scale) ** 2);
-                        const distance2 = Math.sqrt((dy - slitSeparation / 2) ** 2 + (250 * this.scale) ** 2);
-                        const phaseDiff = (distance1 - distance2) * 0.05;
-                        const probability = Math.cos(phaseDiff) ** 2;
-                        if (Math.random() < probability) {
-                            this.detections.push({ x: this.cx + 100 * this.scale, y: p.y });
-                            if (this.detections.length > this.maxDetections) this.detections.shift();
-                        }
+
+                    if (p.x < geometry.slitX) {
+                        const progress = Math.max(0, Math.min(1, (p.x - geometry.sourceX) / (geometry.slitX - geometry.sourceX)));
+                        p.y = geometry.slitY + (p.slitY - geometry.slitY) * progress;
+                    } else {
+                        const progress = Math.max(0, Math.min(1, (p.x - geometry.slitX) / (geometry.screenX - geometry.slitX)));
+                        const eased = 1 - Math.pow(1 - progress, 2);
+                        p.y = p.slitY + (p.targetY - p.slitY) * eased;
+                    }
+
+                    if (p.x >= geometry.screenX) {
+                        this.recordDetection(p.targetY);
                         return false;
                     }
 
                     this.ctx.fillStyle = this.accent;
+                    this.ctx.globalAlpha = 0.9;
                     this.ctx.beginPath();
                     this.ctx.arc(p.x, p.y, 3 * this.scale, 0, Math.PI * 2);
                     this.ctx.fill();
                     return true;
                 });
-
-                // Draw detection pattern
-                this.ctx.fillStyle = this.secondary;
-                this.detections.forEach(d => {
-                    this.ctx.beginPath();
-                    this.ctx.arc(d.x, d.y, 2 * this.scale, 0, Math.PI * 2);
-                    this.ctx.fill();
-                });
+                this.ctx.globalAlpha = 1;
+                this.drawDetectionPattern(geometry, this.secondary);
             }
         }
 
@@ -677,8 +849,6 @@
             constructor(id) {
                 super(id);
                 this.particles = [];
-                this.detections = [];
-                this.maxDetections = 400;
                 this.particleTimer = 0;
                 this.observing = false;
 
@@ -691,97 +861,81 @@
                     this.observing = e.target.checked;
                     observeStatus.textContent = this.observing ? 'ON' : 'OFF';
                     observeStatus.style.color = this.observing ? 'var(--accent-secondary)' : 'var(--accent)';
-                    this.detections = [];
                     this.particles = [];
+                    this.clearDetectionPattern();
                 });
 
                 clearBtn.addEventListener('click', () => {
-                    this.detections = [];
                     this.particles = [];
+                    this.clearDetectionPattern();
                 });
             }
 
             draw() {
                 this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                const geometry = this.getGeometry();
+                const intensityFn = this.observing
+                    ? (y) => this.getObservedIntensity(y, geometry)
+                    : (y) => this.getInterferenceIntensity(y, geometry);
+                const patternColor = this.observing ? this.color : this.secondary;
 
-                const slitY = this.cy;
-                const slitSeparation = 80 * this.scale;
+                this.drawApparatus(geometry, {
+                    showObserverSensors: this.observing,
+                    detectorAlpha: this.observing ? 0.1 : 0.08
+                });
+                this.drawScreenGuide(geometry, patternColor, intensityFn, {
+                    minAlpha: this.observing ? 0.03 : 0.015,
+                    maxAlpha: this.observing ? 0.28 : 0.12,
+                    histogramAlpha: this.observing ? 0.14 : 0.08
+                });
 
-                // Draw slits
-                this.ctx.strokeStyle = this.color;
-                this.ctx.lineWidth = 3 * this.scale;
-                this.ctx.beginPath();
-                const slitX = this.cx - 150 * this.scale;
-                this.ctx.moveTo(slitX, 0);
-                this.ctx.lineTo(slitX, slitY - slitSeparation / 2 - 20 * this.scale);
-                this.ctx.moveTo(slitX, slitY - slitSeparation / 2 + 20 * this.scale);
-                this.ctx.lineTo(slitX, slitY + slitSeparation / 2 - 20 * this.scale);
-                this.ctx.moveTo(slitX, slitY + slitSeparation / 2 + 20 * this.scale);
-                this.ctx.lineTo(slitX, this.canvas.height);
-                this.ctx.stroke();
+                this.particleTimer += 1;
+                if (this.particleTimer >= 4) {
+                    const slitDirection = this.observing ? (Math.random() > 0.5 ? -1 : 1) : 0;
+                    const slitY = geometry.slitY + slitDirection * geometry.slitGap / 2;
+                    const slitBandFn = (y) => {
+                        const sigma = geometry.slitGap * 0.18 + 10 * this.scale;
+                        return Math.exp(-((y - slitY) ** 2) / (2 * sigma * sigma));
+                    };
 
-                // Emit particles
-                this.particleTimer++;
-                if (this.particleTimer > 10) {
-                    if (this.observing) {
-                        // When observing: particle goes through specific slit (particle behavior)
-                        const chosenSlit = Math.random() > 0.5 ? -1 : 1;
-                        this.particles.push({
-                            x: 50 * this.scale,
-                            y: slitY + chosenSlit * slitSeparation / 2,
-                            vx: 4 * this.scale,
-                            vy: 0,
-                            slit: chosenSlit
-                        });
-                    } else {
-                        // When not observing: superposition (wave behavior)
-                        this.particles.push({
-                            x: 50 * this.scale,
-                            y: slitY,
-                            vx: 4 * this.scale,
-                            vy: 0,
-                            slit: null
-                        });
-                    }
+                    this.particles.push({
+                        x: geometry.sourceX,
+                        y: geometry.slitY,
+                        slitY: this.observing ? slitY : geometry.slitY,
+                        targetY: this.observing
+                            ? this.sampleDetectionY(geometry, slitBandFn)
+                            : this.sampleDetectionY(geometry, intensityFn),
+                        vx: 6 * this.scale
+                    });
                     this.particleTimer = 0;
                 }
 
-                // Update particles
                 this.particles = this.particles.filter(p => {
                     p.x += p.vx;
-                    if (p.x > this.cx + 100 * this.scale) {
-                        if (this.observing) {
-                            // Classical pattern: no interference
-                            this.detections.push({ x: this.cx + 100 * this.scale, y: p.y });
-                        } else {
-                            // Quantum pattern: interference
-                            const dy = p.y - slitY;
-                            const distance1 = Math.sqrt((dy + slitSeparation / 2) ** 2 + (250 * this.scale) ** 2);
-                            const distance2 = Math.sqrt((dy - slitSeparation / 2) ** 2 + (250 * this.scale) ** 2);
-                            const phaseDiff = (distance1 - distance2) * 0.05;
-                            const probability = Math.cos(phaseDiff) ** 2;
-                            if (Math.random() < probability) {
-                                this.detections.push({ x: this.cx + 100 * this.scale, y: p.y });
-                            }
-                        }
-                        if (this.detections.length > this.maxDetections) this.detections.shift();
+
+                    if (p.x < geometry.slitX) {
+                        const progress = Math.max(0, Math.min(1, (p.x - geometry.sourceX) / (geometry.slitX - geometry.sourceX)));
+                        p.y = geometry.slitY + (p.slitY - geometry.slitY) * progress;
+                    } else {
+                        const progress = Math.max(0, Math.min(1, (p.x - geometry.slitX) / (geometry.screenX - geometry.slitX)));
+                        const eased = 1 - Math.pow(1 - progress, 2);
+                        p.y = p.slitY + (p.targetY - p.slitY) * eased;
+                    }
+
+                    if (p.x >= geometry.screenX) {
+                        this.recordDetection(p.targetY);
                         return false;
                     }
 
-                    this.ctx.fillStyle = this.accent;
+                    this.ctx.fillStyle = this.observing ? this.color : this.accent;
+                    this.ctx.globalAlpha = 0.9;
                     this.ctx.beginPath();
                     this.ctx.arc(p.x, p.y, 3 * this.scale, 0, Math.PI * 2);
                     this.ctx.fill();
                     return true;
                 });
-
-                // Draw detection pattern
-                this.ctx.fillStyle = this.color;
-                this.detections.forEach(d => {
-                    this.ctx.beginPath();
-                    this.ctx.arc(d.x, d.y, 2 * this.scale, 0, Math.PI * 2);
-                    this.ctx.fill();
-                });
+                this.ctx.globalAlpha = 1;
+                this.drawDetectionPattern(geometry, patternColor);
             }
         }
 
